@@ -1,0 +1,17 @@
+.expense-tile {
+	display: block;
+	border: 1px solid #0176D3;
+	border-radius: .25rem;
+}
+
+.expense-info {
+	margin-bottom: 5px;
+}
+
+lightning-formatted-number {
+	padding-left: 5px;
+}
+
+.expense-button {
+	margin-top: 5px;
+}

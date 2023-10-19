@@ -1,0 +1,26 @@
+<template>
+    <template for:each={data} for:item="exp">
+        <lightning-layout-item key={exp.Id}>
+            <lightning-card class="expense-tile">
+                <a slot="title" data-record-id={exp.Id} onclick={callRecordPage}>{exp.Name}</a>
+                <ul class="slds-has-dividers_bottom-space expense-info">
+                    <li class="slds-item">Description: {exp.Desciption}</li>
+                    <li class="slds-item">Status: {exp.Status__c}</li>
+                    <li class="slds-item ">Paid Amount: 
+						<lightning-formatted-number value = {exp.Total_Paid_Amount__c} format-style="currency" currency-code="EUR"></lightning-formatted-number>
+					</li>
+                    <li class="slds-item">Total Unpaid Employees: 
+                        <lightning-formatted-number value = {exp.Total_Unpaid_Employees__c} format-style="currency" currency-code="EUR" ></lightning-formatted-number>
+                    </li>
+                    <li class="slds-item">Cost: 
+                        <lightning-formatted-number value = {exp.Cost__c} format-style="currency" currency-code="EUR"></lightning-formatted-number>
+                    </li>
+                  </ul>
+                <c-ed-data-table record-id={exp.Id}></c-ed-data-table>
+                <div class="expense-button">
+                    <lightning-button label="New ED" title="Non-primary action" data-record-id={exp.Id} onclick={handleCreateNewED} class="slds-m-left_x-small"></lightning-button>
+                </div>
+            </lightning-card>
+        </lightning-layout-item>
+    </template>
+</template>
