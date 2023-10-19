@@ -1,0 +1,587 @@
+-Criar objetos (done)
+-Criar fields:
+	-employee (done, falta a composite PK)
+		usar validation rule? Não dá com formula field
+		ainda não posso usar código? before trigger daria, penso
+	-trip (falta total participants)
+	-expense (perguntar como é o total paid amount e o total unpaid employees)
+	-expense distribution
+		Amount será a divisão entre Expense cost / Trip Total participants!?
+		Paid amount?
+
+Trip				Expense
+	Total Cost <=>  	Cost
+	
+
+-Verificar se o field Total Cost deve ser Sum ou Count do Cost de Expenses
+
+Mesmo employee pode ir em N trips?
+
+1 Trip - N employees
+1 Employee - N Trips???
+
+1 Trip - N Expenses???
+1 Expense - 1 Trip
+
+1 Expense - 1 Employee responsible
+1 Employee - N Expenses???
+
+1 ED - 1 Expense???	
+
+
+1Expense - n ED
+
+
+
+(5 * ( FLOOR( (  End_Date__c  - DATE( 1900, 1, 8) ) / 7 ) ) + MIN( 5, MOD( End_Date__c  - DATE( 1900, 1, 8), 7 ) ) )
+-
+(5 * ( FLOOR( (  Start_Date__c - DATE( 1900, 1, 8) ) / 7 ) ) + MIN( 5, MOD( Start_Date__c - DATE( 1900, 1, 8), 7 ) ) )
+
+
+se acabar no fds está bem, se acabar na semana tem de ser +1
+
+
+A perguntar:
+	-Se as relações estão certas
+	-Se posso usar trigger para a Key composta (ou se é para usar flows) (done)
+	-Como funciona o Total Participants (done)
+	-Se o Total Cost está certo (se é roll up do cost das expenses, a soma de todas as expenses) (done)
+	-Se o Cost das Expenses é um simples field a preencher (done)
+	-Como funciona os dois Totals da Expense (done)
+	-Se Amount será a divisão entre Expense cost / Trip Total participants!? (done)
+	-Como funciona o Paid Amount (done)
+	-Se para mandar o email é para usar flows também já que não posso usar workflow rule
+
+
+
+Employee
+	First Name - textbox a preencher
+	Last Name - textbox a preencher
+	Id Number - textbox a preencher
+	Id Type - textbox a preencher
+	Nationality - textbox a preencher
+	Gender - Dropdown a preencher
+	Birthdate - date field a preencher
+	Age - formula field read only
+	
+
+Trip
+	Designation - textbox a preencher
+	Description - larger textbox a preencher
+	Start Date - datefield a preencher
+	End Date - datefield a preencher
+	Total Days - Formula Field Read only (end date - start date)
+	Total Vacation Days Required - Formula Field read only (formula complexa que está em cima)
+	Total Participants - number inserido pelo utilizador
+	Total Cost - Roll-up Summary Field (SUM) de Expense - Cost
+	
+Expense 
+	Number - Unique auto number (preenche sozinho)
+	Trip - Master-relationship com a tabela Trip ????
+	Responsible - Lookup-relationship com a tabela Employee????
+	Status - dropdown a preencher
+	Description - textbox a preencher
+	Cost - currency a preencher pelo user
+	Total Paid Amount - Roll-up Sumary Field (SUM) de Expense Distribution - Paid Amount
+	Total Unpaid Employees - Count of Employees - (Total Paid Amount * Count of Employees / Cost)		(segundo o Rui talvez deva fazer em trigger?)
+	
+	Count of Employees - Count de Expense Distribution (1 Expense Distribution tem 1 Employee)
+
+
+Expense Distribution
+	Number - Unique auto number (preenche sozinho)
+	Employee - campo para selecionar Master Employee ????
+	Expense - campo para selecionar Master Expense ????
+	Amount - calculado, a partir do cost da expense e do número de participants		Expense__r.Cost__c /  Expense__r.Trip__r.Total_Participants__c
+	Paid Amount - currency a preencher pelo user
+	
+	
+Criar os campos que faltam
+
+
+Falta:
+	-chave composta no Employee (done)
+	-email para o employee a confirmar que a ED foi paga
+	
+	
+Mesmo employee pode criar mais do que um regito na mesma expense? não
+
+Continuar trigger
+
+
+Employee__c e = new Employee__c(Name='E2', ID_Number__c='1', ID_Type__c='B', Email__c='aa@gg.com');
+
+insert e;
+
+
+Usar Maps e Trigger.NewMap para prevenir os loops nos triggers		//Trigger.newmap não existe em before insert
+
+
+-Testar Guardar os IDS num mapa para prevenir os loops (no trigger Composite Key)
+
+
+-Fazer trigger (na Expense Distr) para prevenir que a quantidade de Employees criados para certa
+Expense Distr não seja maior que o Total Participants da Trip relacionada com essa Expense (pai
+da Expense Distr em questão). Se for maior ou igual não deixa criar associar o Employee a essa
+Expense Distr.
+
+Talvez no mesmo trigger:
+-Fazer trigger(before insert na Expense Distr) para prevenir que um Employee que já tem 
+Expense Distr relacionada àquela Expense seja criado. Ou seja, ao criar Expense Distr, se
+selecionar um Employee que já tem uma Expense Distr com a Expense selecionada, não deixa .
+
+-Na Expense Distr, prevenir (com validation rule) que a Paid Amount seja maior que Amount (done)
+-Fazer flow para, caso a Amount mude (e a Paid Amount fique maior que a Amount) a Paid Amount
+fica igual a Amount (fiz flow, não está funcional)
+
+-Quando Amount = Paid Amount, enviar email ao Employee	(não sei que pôr no recipient type do email alert, como vou buscar o employee?)
+Talvez fazer por trigger (supostamente done, segundo o debug, mas não estou a receber os mails)
+
+-Flow para passar o Status de Expense a Processing quando a Total Paid Amount for maior que 0
+e menor que o Cost. E para passar a Paid quando for igual ou superior ao Cost. (done)
+
+
+Checar as flows!!!!!!!!!!!! (talvez pedir assistência ao Rui)
+
+
+Expense_Distribution__c expDist = [Select Id, Name, Employee__c, Expense__c, Amount__c, Paid_Amount__c FROM Expense_Distribution__c
+                            WHERE Name = 'ExpDist1'];
+
+expDist.Paid_Amount__c = 500;
+update expDist;
+
+
+Continuar pontos 
+
+A fazer:
+
+-Mudar o status da expense para read-only. (not working) Começar sempre a new (e já tenho flows para mudar de resto) 
+-Impedir que Paid Amount possa ser editada após estar igual a Amount (passar a ser read-only) (Não descobri como)
+-Fazer trigger (na Expense Distr) para não deixar criar uma Expense Distr com uma Expense cujo Total Participants
+	da Trip a que pertence, seja menor ou igual do que a quantidade de Expense Distrs que já existem para essa expense (done)
+Talvez no mesmo trigger:
+-Fazer trigger(before insert na Expense Distr) para prevenir que um Employee que já tem 
+	Expense Distr relacionada àquela Expense seja criado. Ou seja, ao criar Expense Distr, se
+	selecionar um Employee que já tem uma Expense Distr com a Expense selecionada, não deixa .
+	OU SEJA, mesmo exemplo que a composite key. Não posso selecionar Employee + Expense repetida
+	juntos (só separado) (done, ver performance vs o outro Composite Key com o Rui)
+-Verificar esta flow:
+	Fazer flow para, caso a Amount mude (e a Paid Amount fique maior que a Amount) a Paid Amount
+	fica igual a Amount (fiz flow, não está funcional)	
+	Fazer trigger after update
+	meter status read only
+-Fazer validation rule na trip para não dar para diminuir o Total Participants(done)
+
+
+A perguntar: (done)
+-Posso alterar o Total Participants na Trip? Se sim, como tratar se tiver mais expense distributions do que total participants?
+	 Adicionar sim, remover não.
+-Verificar trigger do mail	
+
+	
+	
+Falta:
+-Mudar o status da expense para read-only.  Começar sempre a new (e já tenho flows para mudar de resto) 
+	(done, not working porque o admin tem edit-all permissions)
+-Impedir que Paid Amount possa ser editada após estar igual a Amount (passar a ser read-only) (Não descobri como)
+-Verificar esta flow: (done)
+	Fazer flow para, caso a Amount mude (e a Paid Amount fique maior que a Amount) a Paid Amount
+	fica igual a Amount (fiz flow, não está funcional)	
+	Fazer trigger after update
+	meter status read only
+	!!!Afinal acho que as flows funcionam, tenho é de alterar o fórmula field (para currency readonly e fazer trigger suponho)
+
+-Amount: se alterar/criar o NrParticipants da trip, ou o Cost da Expense tenho de alterar a amount. (done)
+	Acho que preciso de tres triggers (1 para trip update, e outra para Expense update, e outra para ED criar)
+	-Falta-me o de criação de ED (done)
+	Expense__r.Cost__c /  Expense__r.Trip__r.Total_Participants__c
+
+-Rever Composite PK triggers
+
+
+
+Front end: datatable
+	-Uma barra para o status (como as opportunities)
+	-Alterar botões (nas páginas ainda diz New contact, new opportunity, etc...)
+	-Pôr drop downs na secção de details/related?
+	-A página de details de expense distribution tem de ser completamente nova (ver pdf)
+	
+	
+Falta:
+-Impedir que Paid Amount possa ser editada após estar igual a Amount (passar a ser read-only) (Não descobri como)
+-Rever Composite PK triggers
+
+A validation rule que previne, ao alterar Paid Amount, de a pôr maior que Amount corre antes dos after (done)
+	update triggers, logo dá erro ao alterar o NrParticipants da Trip ou o Cost da Expense.
+	Como resolver?
+	
+	
+Criar nova ORG com tudo e tentar perceber quando se origina o erro.
+
+Flow para quando a Paid Amount está a ser criada/editada (is changed)
+	Se a Paid Amount > Amount então Paid Amount = Amount
+	!!!AQUI A AMOUNT AINDA NAO FOI CALCULADA (no criar), NÃO VAI DAR!!!
+	
+Flow para quando a Amount está a ser editada (isChanged)
+	Se a Paid Amount > Amount então Paid Amount = Amount
+	
+Desativei flow da ED (estava a estourar porque estava a usar a Amount que está a vazio.
+
+Ver melhor maneira de prevenir que Paid Amount seja maior que Amount.
+Ver melhor maneira de pôr Paid Amount = Amount caso a Amount tenha diminuído e 
+	a Paid Amount atual fique maior que Amount por consequencia
+
+Se só sei a Amount depois de criar a ED, tenho de impedir a Paid Amount de ser preenchida ao criar
+	só ao editar. DESCOBRIR COMO	(done de outra maneira)
+OU CRIAR UM BEFORE INSERT TRIGGER PARA A ED E VERIFICAR AÍ SE A AMOUNT JÁ TEM VALOR (não tem)
+	SE SIM, FAZER ADD ERROR CASO A PAID AMOUNT SEJA MAIOR QUE A AMOUNT
+	
+Fazer no trigger before insert na ED, caso a Paid Amount > Cost__c / Total_Participants__c (done)
+	Pôr Paid Amount = Cost__c / Total_Participants__c
+	
+Fiz validation rule no caso de edição do Paid Amount
+Adicionei o mesmo if no trigger da trip e expense, i.e, quando se altera a amount
+	verifica-se a paid amount, e se ficar maior, altera-se para o valor da amount
+
+
+Falta:
+-Impedir que Paid Amount possa ser editada após estar igual a Amount (passar a ser read-only) (Não descobri como)
+-Rever Composite PK triggers (done, fazer para o EDTrigger) (done)
+
+Front end: datatable
+-Uma barra para o status (como as opportunities) (done)
+-Alterar botões (nas páginas ainda diz New contact, new opportunity, etc...) (semi-done)
+	Descobrir como na Expense e ED (não dá por global action por ser child de object)
+	Lwc para resolver isto talvez (ver com Rui)
+-Pôr drop downs na secção de details/related? (ver se é isto)
+-A página de details de expense  tem de ser completamente nova (ver pdf)
+
+
+Nota:
+	Na nova org só tinha criado os fields ainda.
+	
+
+Testar CompositePK na ED(done)
+
+Falta:
+	-Impedir que Paid Amount possa ser editada após estar igual a Amount (passar a ser read-only) (Não descobri como)
+		Não dá, fazer validation rule antes
+	-Pôr barra de status como read-only também (done)
+	-Fazer testes (pelo menos 80%) coverage
+	
+Continuar testes: -Employee(falta verificar aquela mensagem no testCompositePKInsertMultipleRecordFail
+					e no testCompositePKInsertMultipleRecordPartialSuccess)
+				  -ED (já fiz para a compositePK, faltam só os dois que estão a dar aquele erro como
+					no employee
+					Estava a começar a fazer Teste para o SendEmail (done para success bulk acho)
+				  -Trip (done)
+				  -Expense (done)
+
+
+		
+
+A fazer: (done)
+	Caso negativo do teste de CalculateAmount na ED (não deixa inserir)
+		Acho que este caso não existe para este teste
+	Testar se iguala o PaidAmount à Amount se caso PaidAMount seja maior (done)
+		(supostamente isto é no mesmo teste ainda)
+	-Testar o allOrNone a true uma vez que na realidade ele não insere  (done)
+		nenhum registo se 1 tiver erro
+
+
+Nota: Credenciais da ORG
+		-hugo.coimbra.ferreira@brave-goat-nvjssf.com
+		-brave-goat-nvjssf.com1
+		
+		
+A falar ao Rui: (done)
+	-perguntar se, fazendo teste em bulk, também temos de fazer testes para registos singulares
+		na mesma
+	-falar sobre o erro dos Employee Tests (aparece em todos os testes BULKFail (de todas as classes)
+		Basicamente é uma mensagem que aparece ao fazer Debug(sr) ainda que o teste passe
+		O Erro acontece porque nenhum record está a ser inserido (não é suposto ser inserido,
+			uma vez que é o método fail)	(meti dentro do try catch e resolveu)
+	-Se é normal os system.debugs aparecerem primeiro a mensagem no trigger e só depois no
+		método de teste (acho que sim uma vez que os triggers correm normalmente nos testes)
+	-Como seria o teste Fail para o SendEmail
+	-Perguntar se devo usar o allOrNone a false uma vez que na realidade ele não insere
+		nenhum registo se 1 tiver erro (já alterei para true, verificar)
+	-Avisar de dia 18
+	
+	
+Tentar falar com o Rui sobre o frontend e começar..
+
+Continuar a tentar fazer o teste para o EmailManager	(últimos testes estão na segunda org)	(done)
+
+
+no testCompositePKInsertMultipleRecordSuccess no EmployeeTriggerTest	(done)
+	fazer com numeros de 201 a 400 ( e mudar no setup, fazer de 1 a 200)
+	fazer o memso para o fail (done, checkar com o Rui se pode ser assim)
+	
+	
+no testCompositePKInsertMultipleRecordSuccess na EDTriggerTest	(done)
+	testar com todos os Employees com o mesmo nome (ex: E1), porque o nome não é único.
+	fazr para 200 records.
+	fazer o mesmo para o fail
+	
+	
+no testPreventNewRecordBulkFail de EDTriggerTest fazer bulk 200 records		(done)
+	igual para o success
+	
+	
+no testCalculateAmountSuccess (EDTriggerTest) fazer o mesmo que no testCompositePKInsertMultipleRecordSuccess	(done)
+
+no TripTriggerTest fazer para 1 record só	(done)
+	e na ExpenseTriggerTest igual
+	
+no TripTriggerTest fazer para 200 records 	(done)
+	e na ExpenseTriggerTest igual
+	
+ver com RUI testSendEmailBulkSuccess no EDTriggerTest
+
+
+Enviar como variavel a string para o JSON.deserialize
+
+
+Na trip, juntar um componente (lwc) à página de details que vai ter toda a informação da Trip (done)
+(apresentado em duas colunas)
+	-Em baixo tenho a lista das Expenses (em vez de estar no related)	(lightning-card por expense) (done)
+	-Dentro de cada Expense tem uma tabela com a informação das EDS	(datatable)	(done)
+		-PARA COMEÇAR CARREGAR AS EDS DUMA EXPENSE NUMA DATATABLE	(done)
+	
+Descobrir porquê que está a aparecer o ID e não o nome em Expense e Employee na datatable	(done)
+	(também aparece na query do anonnymous console)	
+	
+Tentar fazer o for no lwc (done)
+
+Fazer lightning card por cada expense (done)
+
+Adicionar as EDs ao lightning-card de cada expense	(done)
+
+Descobrir porque aparece uma linha de labels extra	(done, tinha um componente a mais no edit page)
+
+Tornar os títulos do lightning card (Expenses) clicaveis	(DONE)
+Tornar os nomes das EDs clicaveis (só a coluna do nome) (done)
+
+
+-Ao clicar na coluna PaidAmount fazer sort	(done)
+-Coluna na datatable para adicionar ED	(done)
+-Coluna para apagar linha(ED)	(done)
+-Verificar se o delete foi sucesso antes de apagar a row	(done)
+-falta alinhar o botão à esquerda ou à direita e dar um padding top de 5px da tabela (done)
+
+
+Ver com o Rui:
+	-código do sortable PaidAMount
+	-Onde adicionar o butão para criar EDs	(dentro do lightning-card, acima da datatable) (done)
+	
+
+
+Fazer trailhead do Asynchronous
+
+Fazer um schedule:
+	Todos os dias à mesma hora os employees responsaveis (responsible employee)
+		vao receber o email com os dados (datatable) dessa Expense que são responsaveis
+		ou seja, dados da Expense + da ED (ver print que mandei ao Rui)+
+		vão receber um email com uma tabela (datatable)	(sem usar EmailManager)
+		
+	Passos:
+		-Descobrir como mandar emails através do Apex	(done)
+		-Criar classe de teste	(done)
+		-Analisar se faz sentido usar o SingleEmailMessage ou o MassEmailMessage	(done)
+			Se for com SingleEmailMessage terei de fazer em batches
+		-Enviar Mail teste para o Responsible Employee
+			Descobrir como fazer isto com os dados da datatable
+		-Testar o mail.setHtmlBody para fazer a tabela
+		-Dar query de todos os employees e guardar numa lista	(para pegar nos emails)	(done)
+		-Dar query ao conteudo (expenses + Eds dessa expense) where Expense__c.Responsible__c In 	(done)
+			:Lista de cima
+		-Talvez guardar num mapa (Employee, Expenses com EDs)	(done)
+		
+		-Pôr o schedule o mais simples possivel, só a chamar o batch	(done)
+		-Fazer o código todo que tenho no schedule dentro do batch
+			-No query locator trazer os employees e fazer as restantes queries no execute
+			-Fazer um try catch para caso estoure
+			-Fazer uma lista para os mails e executar o send email fora do for (10 mails de cada vez)
+		-Fazer 2 mapas (Email, Expense E Email, ED)
+		-Mostrar os dados na datatable como tinha pensado, com aquilo do mail.setHtmlBody
+			(ver print que o rui mandou)
+
+		!!!!DESCOBRIR PORQUÊ QUE O EXECUTE DO BATCH NÃO EXECUTA!!!
+			Basicamente não aparece porque o batch job está a correr noutra transação.
+			Para ter alguns dados posso fazer:
+				AsyncApexJob job = [SELECT Id, Status, JobItemsProcessed, TotalJobItems, NumberOfErrors FROM AsyncApexJob WHERE ID = :batchId ];
+			Mas para ver os system.debugs vou ter de correr o batch sem ser através do schedule para 
+				ver se estou a retirar o que quero
+
+Batch para:	(done)
+	As expenses não pagas, passados 2 meses, fecha-as e abre uma nova com o valor por pagar.	(done)
+	Criar novo campo na expense nova que aponta para a expense fechada.	(done)
+		talvez ver o exemplo que tem na queueable para isto
+	Ver pelo campo Status (se está paga ou não)	(done)
+	
+	
+	
+	
+O MEU BATCH PARECE ESTAR DIREITO, DESCOBRIR COMO Testar (VER ULTIMO TAB TAMBEM)
+	Para testar tenho de limitar a query no batch a 10 employees
+
+A fazer:
+	-Para cada email (employee) fazer loops ao mapa para ir buscar os dados das expenses e EDs 	(done)
+		correspondentes
+	-Descobrir como testar o batch e o schedule	(done, verificar com Rui)
+		-quer através de teste
+		-quer mandar mesmo os emails	(done)
+	-Depois testar batch outra vez	(done)
+	-Por fim o schedule	(done)
+	
+	-Descobrir porque só recebo o mail no email pessoal	(já não acontece)
+	-Limpar código	(done)
+	-Testar criar várias Expenses e EDs para os diferentes employees (a ver se não bate em limites)	(done, bate)
+	
+	
+Ver com o Rui:
+	-Perguntar como posso testar este batch visto que não posso criar records de
+		teste com createdDate > 60 dias. Testei a mudar a createdDate mas não consigo
+		realmente testar para o caso de createdDate > 60 certo?
+	-A relação entre Expense e EDs é master-detail, logo ao criar a nova Expense,
+		tenho de "remover" as EDs da Expense fechada e associa-las à nova Expense
+	-Ativar opção Allow Reparenting?
+		Não, clonar as EDs
+		
+	Mostrar ao Rui o try catch e perguntar porquê que o clone não dá	(no teste dá)
+		no debug log os valores estão certos, mas o que mostra não
+		acho que essencialmente ele clona os valores mas depois de inserir gera novos
+		
+
+Fazer a segunda parte do postman (descobrir porque estou offline) e continuar USE REST API module
+	à espera do feedback do rui
+
+
+Rever o que fiz no superbadge	(done)
+
+Continuar aura components (done)
+
+
+Fazer Exercício do Rui (ver email):
+	-Componente em LWC
+	-Para o pop-up ver o playground lwc-recipes (Misc section)	(done)
+	-Para o componente de importar ficheiro : lightning-file-upload (done)
+	-Para o formato JSON:
+		{
+			"employees" :[ 
+				{
+				  "name": "string",
+				  "lastName": "string",
+				  "idNumber": "string",
+				  "idType": "string",
+				  "nationality": "string",				?
+				  "gender": "string",					?
+				  "birthdate": date,
+				  "email": "string",					?
+				}
+			 ]
+		}
+		
+	-Talvez pegar no nome do ficheiro inserido (uploadedFiles[0].name) e mandar para um apex controller para o apagar na db (done)
+	
+1 – Criar um componente onde possas fazer upload de um ficheiro de texto	(done)
+		- Controlar formato do ficheiro (nada de imagens, pdfs, etc.)	(done)
+		- Controlar que o ficheiro não vem vazio	(done)
+		- Numa primeira fase mostrar só o conteúdo do ficheiro no componente	(done)
+
+2 – Não ter este ficheiro stocked	(done)
+		- Os ficheiros que fazes upload são normalmente guardados em base.
+		- Em vez disso, vais mostrar o conteúdo do ficheiro e apagá-lo logo a seguir
+
+3 – Criar um formato JSON para os employees (done)
+		- Arranja uma maneira de formatar os employees em JSON e mostra-me.
+		- Definir tipo para cada campo do employee, por exemplo “firstname” será uma string
+
+4 – Fazer upload do ficheiro JSON (texto) no componente e saber interpretar	(done)
+		- Saber ver que são employees (deserialize)
+		- Há alguns campos que são mesmo obrigatórios! Por exemplo, o ID number e o ID type. Depois há outros que podem vir a nulo, tipo Nationality e Gender...
+			No momento em que dou deserialize, verificar os campos obrigatórios para cada employee.
+			Required: name, IdNum, IdType, Email
+		-(EU)Se não inserir todos os required fields, não adicionar à lista de inserir	(done)
+
+5 – Criar um pop-up no component quando acabas de fazer o upload	(done)
+		- Quando clicas em complete (terminé no meu screenshot), fazer aparecer um outro pop-up.	(done)
+		- Este pop up deve ter dois botões, confirm ou cancel	(done)
+
+IMAGEM NO MAIL
+
+6 – Texto do pop up	(done)
+		- O pop up deve dizer :
+					“ You are trying to upload X valid employees. Do you wish to confirm ? “ ou algo do género
+		- Sendo que o X é o número de employees que leste do ficheiro. Se 0, então mostrar no popup uma mensagem de erro com fundo vermelho
+					“ No employees found in uploaded file”
+					
+7 – Upload de employees:	(done)
+		- Se confirm, então vais tentar inserir cada employee na base de dados.
+		- SE o employee já está em base, então fazer update dos dados dele se forem diferentes!
+
+	
+		
+		
+-Descobrir como aceder ao conteudo do ficheiro importado (o texto, conseguir dar preview à imagem não adianta de nada)	(done)
+	(ver ultimo tab na pasta "Estava a ver". Está em aura mas tentar adaptar)
+	
+	
+	
+
+Dúvidas:
+-Tenho de fazer a verificação dos fields? Se sim, como mostro ao user em que field está a dar erro?
+	Neste momento estou simplesmente a adicionar à lista para dar update apenas os que vêm com tudo
+	direitinho
+-Estou a usar JSON.deserializeUntyped, em vez do JSON.deserialize, é tranquilo ou tenho
+	mesmo de usar o JSON.deserialize? usar JSON.deserialize
+-Na cena do upper case, vale a pena fazer um if para ver a case e alterar só os que estão em lower
+	case para upper case ou altero todos? O que é melhor em termos de performance? não
+	
+
+Vou fazer as verificações só de se os required fields estão preenchidos, se sim adiciona à lista
+	e as restantes validações são feitas pelo Apex ao dar upsert.
+	Meter allOrNone a true? não
+	
+	
+public class employeeJson
+com os fields do meu txt
+
+Fazer Toast para mostrar erros.
+
+	
+	
+-pôr as cenas da picklist num método	(done)
+-meter a dar upsert(chamar metodo apex) employee no OK,	(done)
+-não fazer mais nada no cancelar!?	(done)
+-acabar ponto 4, fazer ponto 7	(done)
+-passar de JSON.deserializeUntyped para JSON.deserialize (criar classes como no print do Rui) (done)
+-fazer upsert com all or none a false.	(done)
+-fazer query no upsert para caso já existam registos na db com aquele IdNum e IdType (buscar o id
+	para o update em vez de insert no caso).	(done)
+-caso no upsert vá para o catch(alguns não foram possíveis inserir) adicionar os erros a uma
+	String para mostrar em Toast no LWC depois	(done)
+	
+	
+-Acho que vou ter de refazer o compositeKey no EmployeeTriggerHandler.	(done)
+	Vou criar uma variável CompositePK que seja igual a IDNum_IDType.	(done)
+	Preencher esta variável num método no EmployeeTriggerHandler antes de inserir cada Employee.	(done)
+	Reescrever compositeKey com base nisto e usar esta var para o SELECT antes do upsert
+		no upsertEmployees (FileUploaderController)
+		
+
+-Rever o employee trigger, handler e test. (done)
+	pôr system.debugs na classe compositeKey para ver onde estoura e analisar o código
+	
+-Fazer o upsert com base na CompositePK:	(done)
+	-Percorrer a lista de employees a inserir
+	-Retirar os Ids da db e adicionar ao employee correspondente
+	-Dar upsert aos registos (se tiver id vai dar update, se não vai dar insert)
+	
+
+-caso no upsert vá para o catch(alguns não foram possíveis inserir) adicionar os erros a uma
+	String para mostrar em Toast no LWC depois	(done)
+	ver o erro do ficheiro atual	(está a tentar inserir vários com o mesmo id)	(done, não é possível este caso)
+	
+-fazer mais testes de dados (done)

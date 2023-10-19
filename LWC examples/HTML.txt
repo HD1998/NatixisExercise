@@ -1,0 +1,7 @@
+<template>
+    <lightning-datatable record-id={recordId}
+        key-field="id"
+        data={data}
+        columns={columns}>
+    </lightning-datatable>
+</template>

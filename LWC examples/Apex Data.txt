@@ -1,0 +1,12 @@
+public with sharing class EDController {
+    @AuraEnabled(cacheable = true)
+    public static List<Expense_Distribution__c> getEDs(String tripId) {
+
+        List<Expense__c> expList = [SELECT Id, Name, Trip__c, Trip__r.Name, Cost__c
+                                    FROM Expense__c WHERE Trip__c = :tripId];
+
+        return [SELECT Name, Employee__r.name, Expense__r.name, Paid_Amount__c, Amount__c 
+                FROM Expense_Distribution__c 
+                WHERE Expense__c = :expList[0].Id];
+    }
+}

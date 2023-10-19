@@ -1,0 +1,36 @@
+import { LightningElement, api, wire, track } from 'lwc';
+import getEDs from '@salesforce/apex/EDController.getEDs';
+
+const columns = [
+    { label: 'Name', fieldName: 'Name' },
+    { label: 'Expense', fieldName: 'Expense__c'},
+    { label: 'Employee', fieldName: 'Employee__c'},
+    { label: 'Paid Amount', fieldName: 'Paid_Amount__c'},
+    { label: 'Amount', fieldName: 'Amount__c'},
+]
+
+export default class EDDataTable extends LightningElement {
+    columns = columns;
+    @api recordId;
+    @track data;
+    @track error
+
+    //connectedCallback() {
+        @wire(getEDs, {
+            tripId: '$recordId'
+        })
+        wiredObject({data, error}) {
+            if(data) {
+                this.data = data;
+                console.log('Data: ' + data);
+                this.error = undefined;
+            } else if(error) {
+                this.error = error;
+                console.log('Error: ' + error);
+                this.data = undefined;
+            }
+        }
+        
+    //}
+   
+}
